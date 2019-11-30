@@ -1,5 +1,6 @@
 interface ISession {
   sessionId: string;
-  fingerprint: string;
+  email: string | null;
+  phone: string | null;
   tags: string[];
 }

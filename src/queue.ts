@@ -48,6 +48,7 @@ export const listen = async (callback: rabbitCallBack) => {
       await callback(msg);
       ch.ack(msg);
     } catch (err) {
+      console.log(err);
       ch.nack(msg, false, false);
     }
   }, { noAck: false });

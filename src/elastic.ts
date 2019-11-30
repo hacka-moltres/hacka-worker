@@ -128,6 +128,30 @@ export async function updateTagsBySessionId(tags: ITags | any, ids: string[]): P
   }
 }
 
+export async function updateOrInsert(tags: ITags, ids: string[]): Promise<any> {
+  try {
+    const data = {
+      index: enIndex.tags,
+      type: 'document',
+      body: {
+        tags,
+        query: {
+          match: {
+            _source: {
+              sessionId: ids
+            }
+          }
+        },
+      },
+    };
+
+    const result = await elastic.updateByQuery(data);
+    return result;
+  } catch (e) {
+    return null;
+  }
+}
+
 export async function insertUser(user: IUser): Promise<any> {
   try {
     const data = {

@@ -71,10 +71,9 @@ async function getUserIndice(payload: ISession): Promise<string | null> {
     userIndex = userIndex.body._id;
   }
 
-  const fingerPrintHits: boolean = (resultFingerPrint.hits.length > 0);
+  const fingerPrintHits: boolean = (resultFingerPrint.total > 0);
 
-  console.log(resultFingerPrint.hits);
-  if (userIndex && resultFingerPrint && fingerPrintHits && resultFingerPrint.hits[0].userIndex) {
+  if (userIndex && resultFingerPrint && fingerPrintHits && !resultFingerPrint.hits[0].userIndex) {
     const tracks: string[] = resultFingerPrint.hits
       .filter((key: ISession) => key.sessionId === payload.sessionId)
       .map((key: { _ids: string; }) => key._ids);
@@ -89,7 +88,6 @@ async function getUserIndice(payload: ISession): Promise<string | null> {
 
   if (fingerPrintHits) {
     console.log('tem fingerPrin, mas nao atualizo porque nao tem usuario');
-
     return;
   }
 

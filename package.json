@@ -1,0 +1,39 @@
+{
+  "name": "hacka-worker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server/main.js",
+  "scripts": {
+    "dev": "yarn ts-node-dev --inspect=0.0.0.0:5859 --respawn --transpileOnly --project tsconfig.dev.json ./src/server.ts",
+    "lint": "yarn eslint \"./src/**/*.ts\"",
+    "compile": " yarn compile:server",
+    "compile:server": "yarn tsc",
+    "watch:server": "yarn tsc -w --preserveWatchOutput",
+    "docker:release": "yarn docker:build && yarn docker:push",
+    "docker:build": "docker build -t $DOCKER_REPOSITORY -f docker/prod/Dockerfile .",
+    "docker:push": "docker push $DOCKER_REPOSITORY"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@sentry/node": "5.4.0",
+    "amqplib": "^0.5.3",
+    "axios": "0.19.0",
+    "dotenv": "^8.2.0",
+    "tslib": "1.9.3",
+    "uuid": "3.3.2"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.5.12",
+    "@types/dotenv": "^8.2.0",
+    "@types/node": "12.0.7",
+    "@types/uuid": "3.4.4",
+    "@typescript-eslint/eslint-plugin": "1.10.2",
+    "@typescript-eslint/parser": "1.10.2",
+    "eslint": "5.16.0",
+    "husky": "2.4.0",
+    "ts-node-dev": "1.0.0-pre.39",
+    "typescript": "3.5.1",
+    "watch": "1.0.2"
+  }
+}

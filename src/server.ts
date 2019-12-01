@@ -2,14 +2,14 @@ import { ConsumeMessage } from 'amqplib';
 
 import {
   checkIndicesExist,
-  findByEmail,
+  findByEmailOrPhone,
   findByFingerPrint,
-  findByPhone,
   insertTags,
   insertUser,
   updateTagsByIds,
 } from './elastic';
 import { rabbitCallBack } from './interfaces/rabbitCallBack';
+import { ISession } from './interfaces/session';
 import { ITags } from './interfaces/tags';
 import { IUser } from './interfaces/user';
 import { listen } from './queue';
@@ -18,36 +18,30 @@ import { listen } from './queue';
 
 const processData: rabbitCallBack = async (msg: ConsumeMessage): Promise<any> => {
   const payload: ISession = JSON.parse(msg.content.toString());
+  // console.log(payload);
   const userDocument = await getUserIndice(payload);
 
   console.log({ userDocument });
 };
 
 async function getUserIndice(payload: ISession): Promise<string | null> {
-  const resultEmail = payload.email && await findByEmail(payload.email.trim());
-  console.log(resultEmail);
-  if (resultEmail && resultEmail.hits.length > 0) {
-    // insertTags({
-    //   userIndex: resultEmail._id,
-    //   tags: payload.tags,
-    // } as ITags);
+  const userBaseData = !!payload.email || !!payload.phone;
+  console.log(`userBaseData: ${userBaseData}`);
 
-    console.log('achou email');
-    return resultEmail.hits[0]._id;
-  }
-  console.log('nao achou email');
-
-  const resultPhone = payload.phone && await findByPhone(payload.phone.trim());
-
-  if (resultPhone && resultPhone.hits) {
+  const resultEmail = userBaseData && await findByEmailOrPhone(payload.email, payload.phone);
+  if (resultEmail && resultEmail.total && resultEmail.total > 0) {
     insertTags({
-      userIndex: resultPhone._id,
+      userIndex: resultEmail.hits[0]._id,
       tags: payload.tags,
+      sessionId: payload.sessionId,
+      dateTime: payload.dateTime,
+      date: payload.date,
     } as ITags);
 
-    return resultPhone._id;
+    console.log('achou usuario');
+    return resultEmail.hits[0]._id;
   }
-  console.log('nao achou phone');
+  console.log('nao achou email ou telefone');
 
   const fingerPrint = payload.tags.find(key => key.toLocaleLowerCase().startsWith('fingerprint:'));
   const resultFingerPrint = fingerPrint && await findByFingerPrint(fingerPrint);
@@ -57,9 +51,6 @@ async function getUserIndice(payload: ISession): Promise<string | null> {
   }
 
   console.log('nao achou fingerPrint atrelado ao usuario');
-
-  const userBaseData = !!payload.email || !!payload.phone;
-  console.log(`userBaseData: ${userBaseData}`);
 
   let userIndex = null;
   if (userBaseData) {
@@ -95,12 +86,15 @@ async function getUserIndice(payload: ISession): Promise<string | null> {
     userIndex,
     tags: payload.tags,
     sessionId: payload.sessionId,
+    dateTime: payload.dateTime,
+    date: payload.date,
   } as ITags);
 
   console.log('só criou as tags');
 }
 
 try {
+  console.log('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n');
   // console.table(configs);
   checkIndicesExist();
 

@@ -7,23 +7,35 @@ import { IUser } from './interfaces/user';
 
 const elastic = new Client({ node: ELASTIC_API });
 
-export async function findByEmail(emailUser: string): Promise<any> {
+export async function findByEmailOrPhone(emailUser: string, phoneUser: string): Promise<any> {
   try {
     const data = {
       index: enIndex.user,
       type: 'document',
       body: {
         query: {
-          match: {
-            email: emailUser.toString(),
-          },
-        },
-      },
+          bool: {
+            must: [
+              {
+                // eslint-disable-next-line camelcase
+                query_string: {
+                  query: `email:"${emailUser}" | phone:"${phoneUser}"`,
+                  // eslint-disable-next-line camelcase
+                  analyze_wildcard: true,
+                  // eslint-disable-next-line camelcase
+                  default_field: '*'
+                }
+              }
+            ]
+          }
+        }
+      }
     };
 
     const result = await elastic.search(data);
     return result.body.hits;
   } catch (e) {
+    console.error(e);
     return null;
   }
 }

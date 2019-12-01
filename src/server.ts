@@ -7,6 +7,7 @@ import {
   insertTags,
   insertUser,
   updateTagsByIds,
+  updateTagsBySessionId,
 } from './elastic';
 import { rabbitCallBack } from './interfaces/rabbitCallBack';
 import { ISession } from './interfaces/session';
@@ -29,18 +30,27 @@ async function getUserIndice(payload: ISession): Promise<string | null> {
   console.log(`userBaseData: ${userBaseData}`);
 
   const resultEmail = userBaseData && await findByEmailOrPhone(payload.email, payload.phone);
+  const tags: ITags = {
+    userIndex: null,
+    tags: payload.tags,
+    sessionId: payload.sessionId,
+    dateTime: payload.dateTime,
+    date: payload.date,
+  };
+
   if (resultEmail && resultEmail.total && resultEmail.total > 0) {
-    insertTags({
-      userIndex: resultEmail.hits[0]._id,
-      tags: payload.tags,
-      sessionId: payload.sessionId,
-      dateTime: payload.dateTime,
-      date: payload.date,
-    } as ITags);
+    tags.userIndex = resultEmail.hits[0]._id;
+    const update = await updateTagsBySessionId(tags, payload.sessionId);
+    console.log({ update });
+    if (!update) {
+      console.log('inseriu tag com usuario');
+      insertTags(tags).catch(err => console.error(err));
+    }
 
     console.log('achou usuario');
     return resultEmail.hits[0]._id;
   }
+
   console.log('nao achou email ou telefone');
 
   const fingerPrint = payload.tags.find(key => key.toLocaleLowerCase().startsWith('fingerprint:'));
@@ -71,7 +81,7 @@ async function getUserIndice(payload: ISession): Promise<string | null> {
 
     updateTagsByIds({
       userIndex,
-    }, tracks);
+    }, tracks).catch(err => console.error(err));
 
     console.log('atualizo fingerPrint e atrelo o usuario');
     return userIndex;
@@ -88,19 +98,15 @@ async function getUserIndice(payload: ISession): Promise<string | null> {
     sessionId: payload.sessionId,
     dateTime: payload.dateTime,
     date: payload.date,
-  } as ITags);
+  } as ITags).catch(err => console.error(err));
 
   console.log('só criou as tags');
 }
 
-try {
-  console.log('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n');
-  // console.table(configs);
-  checkIndicesExist();
+console.log('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n');
+// console.table(configs);
+checkIndicesExist().catch(err => console.error(err));
 
-  listen(
-    processData
-  );
-} catch (e) {
-  console.error(e);
-}
+listen(
+  processData
+).catch(err => console.error(err));

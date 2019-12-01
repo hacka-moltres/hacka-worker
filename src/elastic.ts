@@ -40,27 +40,6 @@ export async function findByEmailOrPhone(emailUser: string, phoneUser: string): 
   }
 }
 
-export async function findByPhone(phoneUser: string): Promise<any> {
-  try {
-    const data = {
-      index: enIndex.user,
-      type: 'document',
-      body: {
-        query: {
-          match: {
-            phone: phoneUser.toString(),
-          },
-        },
-      },
-    };
-
-    const result = await elastic.search(data);
-    return result.body.hits;
-  } catch (e) {
-    return null;
-  }
-}
-
 export async function findByFingerPrint(fingerPrint: string): Promise<any> {
   try {
     const data = {
@@ -116,50 +95,49 @@ export async function updateTagsByIds(tags: ITags | any, ids: string[]): Promise
   }
 }
 
-export async function updateTagsBySessionId(tags: ITags | any, ids: string[]): Promise<any> {
+export async function updateTagsBySessionId(tags: ITags | any, id: string): Promise<any> {
   try {
-    const data = {
+    const data: any = {
       index: enIndex.tags,
       type: 'document',
       body: {
-        tags,
         query: {
-          match: {
-            _source: {
-              sessionId: ids
-            }
+          bool: {
+            must: [
+              {
+                // eslint-disable-next-line camelcase
+                match_phrase: {
+                  sessionId: {
+                    query: id.toString()
+                  }
+                }
+              }
+            ]
           }
-        },
-      },
+        }
+      }
     };
 
-    const result = await elastic.updateByQuery(data);
-    return result;
-  } catch (e) {
-    return null;
-  }
-}
+    let result: any = await elastic.search(data);
+    result = result.body.hits;
 
-export async function updateOrInsert(tags: ITags, ids: string[]): Promise<any> {
-  try {
-    const data = {
-      index: enIndex.tags,
-      type: 'document',
-      body: {
-        tags,
-        query: {
-          match: {
-            _source: {
-              sessionId: ids
-            }
-          }
-        },
-      },
-    };
+    if (result.total === 0) {
+      return;
+    }
 
-    const result = await elastic.updateByQuery(data);
-    return result;
+    const _ids: string[] = result.hits.map((key: { _id: string; }) => key._id);
+    result = await Promise.all(_ids.map(async value => {
+      await elastic.update({
+        index: enIndex.tags,
+        type: 'document',
+        id: value,
+        body: { doc: tags }
+      } as any);
+    }));
+
+    return result.length;
   } catch (e) {
+    console.error('deu ruim', e.meta.body);
     return null;
   }
 }
